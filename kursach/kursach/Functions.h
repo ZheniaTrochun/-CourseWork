@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rozklad.h"
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
@@ -14,28 +15,16 @@ using namespace System::Drawing;
 using namespace std;
 
 
-void MarshalString(String^, string&);				// зміни типу з String^ до string
+static int operations = 0;
+
+void MarshalString(String^, string&);				// змінa типу з String^ до string
 
 void gen(double**, int);								// генерація матриці
-void get(RichTextBox^, char*, double**, int);			// зчитування матриці з RichTextBox та запис її до файлу
-void getFromFile(char*, double**, int);				// отримання матриці з файлу
+bool get(RichTextBox^, char*, double**, int);			// зчитування матриці з RichTextBox та запис її до файлу
+void getFromFile(TextBox^, char*, double**);				// отримання матриці з файлу
 
-void determin(RichTextBox^, RichTextBox^, TextBox^, char*, double**, int);	// перевірка виродженості матриці
+void determin(RichTextBox^, RichTextBox^, TextBox^, char*, double**, int, int&);	// перевірка виродженості матриці
 
-bool LU(RichTextBox^, double**, double**, double**, int);			// LU метод
-void matrP(double**, int**, int);									// знаходження матриці перестановок
-void swap(double**, int**, int, int, int);							// зміна місцями рядочків в матриці
-void LUP(RichTextBox^, double **, int**, double**, double**, int);	// LUP метод
-
-bool obraml(RichTextBox^, double**, double**, int);	// метод Обрамлення
-double mult1(double*, double*, double**, double**, int);
-
-void revMat(double**, double**, double**, int);		// знаходження оберненої матриці для LU та LUP розкладів
-
-void multmatr(int**, int**, int**, int);			//
-void multmatr(double**, double**, int**, int);		// множення матриць
-void multmatr(double**, int**, double**, int);		//
-
-void output(RichTextBox^, int**, int);    // Вивід матриці до RichTextBox
-void output(RichTextBox^, double**, int);   // Вивід матриці до RichTextBox
+void output(RichTextBox^, char*, int**, int);    // Вивід матриці до RichTextBox
+void output(RichTextBox^, char*, double**, int);   // Вивід матриці до RichTextBox
 

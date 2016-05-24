@@ -1,5 +1,7 @@
 
 #include "Functions.h"
+#include "rozklad.h"
+#include "obramlennia.h"
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
@@ -15,6 +17,9 @@ namespace kursach {
 	using namespace System::Windows::Forms;
 	using namespace System::Data;
 	using namespace System::Drawing;
+
+	int iteration = 0;
+	int operations = 0;
 
 	int **P;
 	double **A, **L, **U, **Arev, **Arev1;
@@ -111,12 +116,13 @@ namespace kursach {
 			this->button3->Name = L"button3";
 			this->button3->Size = System::Drawing::Size(121, 46);
 			this->button3->TabIndex = 2;
-			this->button3->Text = L"Обрамлення";
+			this->button3->Text = L"Окаймлення";
 			this->button3->UseVisualStyleBackColor = true;
 			this->button3->Click += gcnew System::EventHandler(this, &MyForm::button3_Click);
 			// 
 			// textBox1
 			// 
+			this->textBox1->BackColor = System::Drawing::Color::White;
 			this->textBox1->Location = System::Drawing::Point(13, 229);
 			this->textBox1->Name = L"textBox1";
 			this->textBox1->ReadOnly = true;
@@ -137,7 +143,6 @@ namespace kursach {
 			// 
 			this->richTextBox1->Location = System::Drawing::Point(227, 43);
 			this->richTextBox1->Name = L"richTextBox1";
-			this->richTextBox1->ScrollBars = System::Windows::Forms::RichTextBoxScrollBars::ForcedBoth;
 			this->richTextBox1->Size = System::Drawing::Size(254, 146);
 			this->richTextBox1->TabIndex = 5;
 			this->richTextBox1->Text = L"";
@@ -145,10 +150,10 @@ namespace kursach {
 			// 
 			// richTextBox2
 			// 
+			this->richTextBox2->BackColor = System::Drawing::Color::White;
 			this->richTextBox2->Location = System::Drawing::Point(227, 229);
 			this->richTextBox2->Name = L"richTextBox2";
 			this->richTextBox2->ReadOnly = true;
-			this->richTextBox2->ScrollBars = System::Windows::Forms::RichTextBoxScrollBars::ForcedBoth;
 			this->richTextBox2->Size = System::Drawing::Size(254, 146);
 			this->richTextBox2->TabIndex = 6;
 			this->richTextBox2->Text = L"";
@@ -196,6 +201,7 @@ namespace kursach {
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+			this->BackColor = System::Drawing::Color::White;
 			this->ClientSize = System::Drawing::Size(563, 414);
 			this->Controls->Add(this->button7);
 			this->Controls->Add(this->button6);
@@ -217,6 +223,19 @@ namespace kursach {
 #pragma endregion
 	private: System::Void button3_Click(System::Object^  sender, System::EventArgs^  e) {
 
+		string s;
+
+		MarshalString(textBox2->Text, s);
+
+		for (int i(0); i < s.size(); i++)
+		{
+			if (!isdigit(s[i]))
+			{
+				richTextBox2->Text = "ERROR";
+				return;
+			}
+		}
+
 		if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 		{
 			richTextBox2->Text = "ERROR";
@@ -225,7 +244,7 @@ namespace kursach {
 
 		n = Convert::ToInt32(textBox2->Text);
 
-		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 
 		if (textBox1->Text == "Вироджена")
 		{
@@ -233,7 +252,13 @@ namespace kursach {
 			return;
 		}
 
-		get(richTextBox1, "file.txt", A, n);
+		bool ch = get(richTextBox1, "file.txt", A, n);
+
+		if (!ch)
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
 
 		Arev = new double*[n];
 
@@ -242,7 +267,14 @@ namespace kursach {
 			Arev[i] = new double[n];
 		}
 		bool check;
-		check = obraml(richTextBox2, A, Arev, n);
+
+		iteration = 0;
+		operations = 0;
+		double t1 = clock();
+		
+		check = obraml(richTextBox2, A, Arev, n, iteration, operations);
+		
+		double t2 = clock();
 
 		if (!(check))
 		{
@@ -250,11 +282,36 @@ namespace kursach {
 			return;
 		}
 
-		output(richTextBox2, Arev, n);
+		char *name = "Окаймлення.txt";
+
+		output(richTextBox2, name, Arev, n);
+		
+		FILE *f = freopen(name, "a", stdout);
+		
+		richTextBox2->Text += "\nКількість ітерацій = " + iteration + "\n";
+		cout << "\nКількість ітерацій = " << iteration << "\n";
+		richTextBox2->Text += "\nКількість арифметичних операцій = " + operations + "\n";
+		cout << "\nКількість арифметичних операцій = " << operations << "\n";
+		richTextBox2->Text += "\nЧас роботи = " + (double)(t2 - t1) / CLOCKS_PER_SEC + "\n";
+		cout << "\nЧас роботи = " << (double)(t2 - t1) / CLOCKS_PER_SEC << "\n";
+		fclose(f);
 
 	}
 	private: System::Void button5_Click(System::Object^  sender, System::EventArgs^  e) {
-		
+		/*
+		string s;
+
+		MarshalString(textBox2->Text, s);
+
+		for (int i(0); i < s.size(); i++)
+		{
+			if (!isdigit(s[i]))
+			{
+				richTextBox2->Text = "ERROR";
+				return;
+			}
+		}
+
 		if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 		{
 			richTextBox2->Text = "ERROR";
@@ -262,6 +319,14 @@ namespace kursach {
 		}
 
 		n = Convert::ToInt32(textBox2->Text);
+		*/
+		FILE *f = freopen("file.txt", "r", stdin);
+
+		int n;
+		cin >> n;
+		fclose(f);
+		textBox2->Text = "";
+		textBox2->Text += n;
 
 		A = new double*[n];
 
@@ -269,15 +334,37 @@ namespace kursach {
 		{
 			A[i] = new double[n];
 		}
+	
+		for (int i = 0; i < n; i++)
+		{
+			for (int j = 0; j < n; j++)
+			{
+				A[i][j] = 0;
+			}
+		}
+		
+		getFromFile(textBox2, "file.txt", A);
 
-		getFromFile("file.txt", A, n);
-
-		output(richTextBox1, A, n);
-		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+		output(richTextBox1, "file.txt", A, n);
+		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 	}
 private: System::Void button4_Click(System::Object^  sender, System::EventArgs^  e) {
 
 	srand(time(NULL));
+
+	string s;
+
+	MarshalString(textBox2->Text, s);
+
+	for (int i(0); i < s.size(); i++)
+	{
+		if (!isdigit(s[i]))
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
+	}
+
 	if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 	{
 		richTextBox2->Text = "ERROR";
@@ -291,13 +378,35 @@ private: System::Void button4_Click(System::Object^  sender, System::EventArgs^ 
 	{
 		A[i] = new double[n];
 	}
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			A[i][j] = 0;
+		}
+	}
+
 	gen(A, n);
 
-	output(richTextBox1, A, n);
-	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+	output(richTextBox1, "file.txt", A, n);
+	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 }
 private: System::Void button6_Click(System::Object^  sender, System::EventArgs^  e) {
 	
+	string s;
+
+	MarshalString(textBox2->Text, s);
+
+	for (int i(0); i < s.size(); i++)
+	{
+		if (!isdigit(s[i]))
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
+	}
+
 	if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 	{
 		richTextBox2->Text = "ERROR";
@@ -322,11 +431,30 @@ private: System::Void button6_Click(System::Object^  sender, System::EventArgs^ 
 		}
 	}
 
-	get(richTextBox1, "file.txt", A, n);
-	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+	bool ch = get(richTextBox1, "file.txt", A, n);
+
+	if (!ch)
+	{
+		richTextBox2->Text = "ERROR";
+		return;
+	}
+
+	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 }
 private: System::Void button1_Click(System::Object^  sender, System::EventArgs^  e) {
 
+	string s;
+
+	MarshalString(textBox2->Text, s);
+
+	for (int i(0); i < s.size(); i++)
+	{
+		if (!isdigit(s[i]))
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
+	}
 
 	if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 	{
@@ -364,7 +492,7 @@ private: System::Void button1_Click(System::Object^  sender, System::EventArgs^ 
 			Arev[i] = new double[n];
 		}
 
-		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+		determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 		
 
 		if (textBox1->Text == "Вироджена")
@@ -372,25 +500,62 @@ private: System::Void button1_Click(System::Object^  sender, System::EventArgs^ 
 			richTextBox2->Text = "\tERROR!!!\n\tDet = 0!!!";
 			return;
 		}
-		get(richTextBox1, "file.txt", A, n);
+		bool ch = get(richTextBox1, "file.txt", A, n);
+		
+		if (!ch)
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
 
 		bool check;
 
-		check = LU(richTextBox2, A, L, U, n);
-		
+		iteration = 0;
+		operations = 0;
+		double t1 = clock();
+
+		check = LU(richTextBox2, A, L, U, n, iteration, operations);
+
 		if (!(check))
 		{
 			richTextBox2->Text = "\tERROR!!!\n\tDiv by 0!!!";
 			return;
 		}
 
-		revMat(L, U, Arev, n);
+		revMat(L, U, Arev, n, iteration, operations);
+		
+		double t2 = clock();
+		
+		char *name = "LU.txt";
 
-		output(richTextBox2, Arev, n);
+		output(richTextBox2, name, Arev, n);
+		
+		FILE *f = freopen(name, "a", stdout);
+		
+		richTextBox2->Text += "\nКількість ітерацій = " + iteration + "\n";
+		cout << "\nКількість ітерацій = " << iteration << "\n";
+		richTextBox2->Text += "\nКількість арифметичних операцій = " + operations + "\n";
+		cout << "\nКількість арифметичних операцій = " << operations << "\n";
+		richTextBox2->Text += "\nЧас роботи = " + (double)(t2 - t1) / CLOCKS_PER_SEC + "\n";
+		cout << "\nЧас роботи = " << (double)(t2 - t1) / CLOCKS_PER_SEC << "\n";
+		fclose(f);
 	}
 	
 }
 private: System::Void button2_Click(System::Object^  sender, System::EventArgs^  e) {
+
+	string s;
+
+	MarshalString(textBox2->Text, s);
+
+	for (int i(0); i < s.size(); i++)
+	{
+		if (!isdigit(s[i]))
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
+	}
 
 	if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0)) 
 	{
@@ -400,7 +565,13 @@ private: System::Void button2_Click(System::Object^  sender, System::EventArgs^ 
 
 	n = Convert::ToInt32(textBox2->Text);
 
-	get(richTextBox1, "file.txt", A, n);
+	bool ch = get(richTextBox1, "file.txt", A, n);
+
+	if (!ch)
+	{
+		richTextBox2->Text = "ERROR";
+		return;
+	}
 
 	L = new double*[n];
 
@@ -449,7 +620,11 @@ private: System::Void button2_Click(System::Object^  sender, System::EventArgs^ 
 		P[i][i] = 1;
 	}
 
-	LUP(richTextBox2, A, P, L, U, n);
+	iteration = 0;
+	operations = 0;
+	double t1 = clock();
+
+	LUP(richTextBox2, A, P, L, U, n, iteration, operations);
 
 	if (textBox1->Text == "Вироджена")
 	{
@@ -457,13 +632,38 @@ private: System::Void button2_Click(System::Object^  sender, System::EventArgs^ 
 		return;
 	}
 
-	revMat(L, U, Arev, n);
+	revMat(L, U, Arev, n, iteration, operations);
 
-	multmatr(Arev, P, Arev1, n);
+	multmatr(Arev, P, Arev1, n, iteration, operations);
+	double t2 = clock();
 
-	output(richTextBox2, Arev1, n);
+	char *name = "LUP.txt";
+
+	output(richTextBox2, name, Arev1, n);
+	FILE *f = freopen(name, "a", stdout);
+	richTextBox2->Text += "\nКількість ітерацій = " + iteration + "\n";
+	cout << "\nКількість ітерацій = " << iteration << "\n";
+	richTextBox2->Text += "\nКількість арифметичних операцій = " + operations + "\n";
+	cout << "\nКількість арифметичних операцій = " << operations << "\n";
+	richTextBox2->Text += "\nЧас роботи = " + (double)(t2 - t1) / CLOCKS_PER_SEC + "\n";
+	cout << "\nЧас роботи = " << (double)(t2 - t1) / CLOCKS_PER_SEC << "\n";
+	fclose(f);
+
 }
 private: System::Void button7_Click(System::Object^  sender, System::EventArgs^  e) {
+
+	string s;
+
+	MarshalString(textBox2->Text, s);
+
+	for (int i(0); i < s.size(); i++)
+	{
+		if (!isdigit(s[i]))
+		{
+			richTextBox2->Text = "ERROR";
+			return;
+		}
+	}
 
 	if ((textBox2->Text == "") || (Convert::ToInt32(textBox2->Text) <= 0))
 	{
@@ -473,7 +673,7 @@ private: System::Void button7_Click(System::Object^  sender, System::EventArgs^ 
 
 	n = Convert::ToInt32(textBox2->Text);
 
-	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n);
+	determin(richTextBox2, richTextBox1, textBox1, "file.txt", A, n, iteration);
 
 }
 };
